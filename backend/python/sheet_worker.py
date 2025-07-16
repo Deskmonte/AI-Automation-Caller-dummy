@@ -27,6 +27,7 @@ def read_google_sheet(sheet_url):
 
 def read_file(file_path):
     ext = os.path.splitext(file_path)[1].lower()
+    print(f"DEBUG: file_path={file_path}, ext={ext}", file=sys.stderr)
     if ext in ['.xlsx', '.xls']:
         df = pd.read_excel(file_path)
     elif ext == '.csv':
@@ -45,9 +46,21 @@ def main():
             df = read_google_sheet(input_arg)
         else:
             df = read_file(input_arg)
+        # Fill NaN with empty string for easier processing
+        df = df.fillna('')
+        # Find the Call Status column (case-insensitive)
+        status_col = None
+        for col in df.columns:
+            if col.strip().lower() == 'call status':
+                status_col = col
+                break
+        to_call = []
+        if status_col:
+            to_call = df[df[status_col].str.strip().str.lower() == 'not-called'].values.tolist()
         result = {
             'columns': list(df.columns),
-            'rows': df.fillna('').values.tolist()
+            'rows': df.values.tolist(),
+            'to_call': to_call
         }
         print(json.dumps(result))
     except Exception as e:
